@@ -4,13 +4,13 @@ let markers = [];
 let postcodes = new Set();
 
 function initMap() {
-  window.initMap = initMap;
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 4,
     center: { lat: -25.2744, lng: 133.7751 },
   });
+  window.initMap = initMap;
 
-  fetch("/stockists_for_map.csv")xx
+  fetch("/stockists_for_map.csv")
     .then((response) => response.text())
     .then((data) => {
       const parsed = Papa.parse(data, { header: true });
