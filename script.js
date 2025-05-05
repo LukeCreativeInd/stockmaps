@@ -1,3 +1,4 @@
+
 let map;
 let markers = [];
 let postcodes = new Set();
@@ -8,33 +9,32 @@ function initMap() {
     center: { lat: -25.2744, lng: 133.7751 },
   });
 
-  fetch("/stockists_for_map.csv")
+  fetch("/stockists_for_map.csv")xx
     .then((response) => response.text())
     .then((data) => {
-      const rows = data.split("\n").slice(1);
-      rows.forEach((row) => {
-        const cols = row.split(",");
-        const [company, address1, city, state, postcode, phone, email, fullAddress] = cols;
+      const parsed = Papa.parse(data, { header: true });
+      parsed.data.forEach(({ Company, Address1, City, State, Postcode, Phone, Email, "Full Address": FullAddress }) => {
+        if (!FullAddress) return;
 
-        if (postcode) postcodes.add(postcode.trim());
+        if (Postcode) postcodes.add(Postcode.trim());
 
         const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: fullAddress }, (results, status) => {
+        geocoder.geocode({ address: FullAddress }, (results, status) => {
           if (status === "OK") {
             const position = results[0].geometry.location;
 
             const marker = new google.maps.Marker({
               map: map,
               position,
-              title: company,
+              title: Company,
             });
 
             const infoWindow = new google.maps.InfoWindow({
-              content: `<strong>${company}</strong><br>${fullAddress}<br><br>📞 ${phone.replaceAll('"','')}`,
+              content: `<strong>${Company}</strong><br>${FullAddress}<br><br>📞 ${Phone?.replaceAll('"','') || ''}`,
             });
 
             marker.addListener("click", () => infoWindow.open(map, marker));
-            markers.push({ marker, company, postcode: postcode.trim(), position });
+            markers.push({ marker, company: Company, postcode: Postcode.trim(), position });
           }
         });
       });
@@ -96,4 +96,3 @@ function setupPostcodeAutocomplete() {
     });
   });
 }
- 
