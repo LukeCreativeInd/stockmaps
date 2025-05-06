@@ -9,7 +9,13 @@
 </head>
 <body>
   <div id="container">
-    <div id="stockist-list"></div>
+    <div id="stockist-list">
+      <h2>Find A Stockist</h2>
+      <input type="text" id="search-name" placeholder="Search by name..." />
+      <input type="text" id="search-postcode" placeholder="Search by postcode..." />
+      <button id="clear-filters">Clear Filters</button>
+      <div id="stockist-entries"></div>
+    </div>
     <div id="map"></div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
