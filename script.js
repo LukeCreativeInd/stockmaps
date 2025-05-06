@@ -2,19 +2,22 @@
 let map;
 let markers = [];
 let postcodes = new Set();
+let bounds;
 
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 4,
     center: { lat: -25.2744, lng: 133.7751 },
   });
-  window.initMap = initMap;
 
-  fetch("/stockists_for_map.csv")
+  bounds = new google.maps.LatLngBounds();
+
+  fetch("public/stockists_for_map.csv")
     .then((response) => response.text())
     .then((data) => {
       const parsed = Papa.parse(data, { header: true });
-      parsed.data.forEach(({ Company, Address1, City, State, Postcode, Phone, Email, "Full Address": FullAddress }) => {
+      parsed.data.forEach((row) => {
+        const { Company, Address1, City, State, Postcode, Phone, Email, "Full Address": FullAddress } = row;
         if (!FullAddress) return;
 
         if (Postcode) postcodes.add(Postcode.trim());
@@ -30,12 +33,18 @@ function initMap() {
               title: Company,
             });
 
+            bounds.extend(position);
+
             const infoWindow = new google.maps.InfoWindow({
               content: `<strong>${Company}</strong><br>${FullAddress}<br><br>📞 ${Phone?.replaceAll('"','') || ''}`,
             });
 
             marker.addListener("click", () => infoWindow.open(map, marker));
+
             markers.push({ marker, company: Company, postcode: Postcode.trim(), position });
+
+            addToStockistList(Company, FullAddress, marker);
+            map.fitBounds(bounds);
           }
         });
       });
@@ -43,7 +52,7 @@ function initMap() {
       setupPostcodeAutocomplete();
     });
 
-  document.getElementById("search-name").addEventListener("input", function () {
+  document.getElementById("search-name")?.addEventListener("input", function () {
     const value = this.value.toLowerCase();
     markers.forEach(({ marker, company }) => {
       const visible = company.toLowerCase().includes(value);
@@ -51,17 +60,17 @@ function initMap() {
     });
   });
 
-  document.getElementById("clear-filters").addEventListener("click", () => {
+  document.getElementById("clear-filters")?.addEventListener("click", () => {
     document.getElementById("search-name").value = "";
     document.getElementById("search-postcode").value = "";
     markers.forEach(({ marker }) => marker.setVisible(true));
-    map.setZoom(4);
-    map.setCenter({ lat: -25.2744, lng: 133.7751 });
+    map.fitBounds(bounds);
   });
 }
 
 function setupPostcodeAutocomplete() {
   const input = document.getElementById("search-postcode");
+  if (!input) return;
   const datalist = document.createElement("datalist");
   datalist.id = "postcode-options";
   document.body.appendChild(datalist);
@@ -80,8 +89,7 @@ function setupPostcodeAutocomplete() {
 
     if (value === "") {
       markers.forEach(({ marker }) => marker.setVisible(true));
-      map.setZoom(4);
-      map.setCenter({ lat: -25.2744, lng: 133.7751 });
+      map.fitBounds(bounds);
       return;
     }
 
@@ -97,3 +105,33 @@ function setupPostcodeAutocomplete() {
     });
   });
 }
+
+function addToStockistList(company, address, marker) {
+  const container = document.getElementById("stockist-list");
+  if (!container) return;
+
+  const div = document.createElement("div");
+  div.className = "stockist";
+  div.innerHTML = `<strong>${company}</strong><br>${address}`;
+  
+  div.addEventListener("mouseenter", () => {
+    marker.setIcon({
+      url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+      scaledSize: new google.maps.Size(50, 50),
+    });
+  });
+
+  div.addEventListener("mouseleave", () => {
+    marker.setIcon(null);
+  });
+
+  div.addEventListener("click", () => {
+    map.panTo(marker.getPosition());
+    map.setZoom(14);
+    google.maps.event.trigger(marker, 'click');
+  });
+
+  container.appendChild(div);
+}
+
+window.initMap = initMap;
