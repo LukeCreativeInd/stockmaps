@@ -41,94 +41,99 @@ function initMap() {
 
             marker.addListener("click", () => infoWindow.open(map, marker));
 
-            markers.push({ marker, company: Company, postcode: Postcode.trim(), position });
+            const stockist = { marker, company: Company, postcode: Postcode.trim(), position, address: FullAddress };
+            markers.push(stockist);
 
-            addToStockistList(Company, FullAddress, marker);
+            addToStockistList(stockist);
             map.fitBounds(bounds);
           }
         });
       });
 
-      setupPostcodeAutocomplete();
+      setupFiltering();
     });
-
-  document.getElementById("search-name")?.addEventListener("input", function () {
-    const value = this.value.toLowerCase();
-    markers.forEach(({ marker, company }) => {
-      const visible = company.toLowerCase().includes(value);
-      marker.setVisible(visible);
-    });
-  });
-
-  document.getElementById("clear-filters")?.addEventListener("click", () => {
-    document.getElementById("search-name").value = "";
-    document.getElementById("search-postcode").value = "";
-    markers.forEach(({ marker }) => marker.setVisible(true));
-    map.fitBounds(bounds);
-  });
 }
 
-function setupPostcodeAutocomplete() {
-  const input = document.getElementById("search-postcode");
-  if (!input) return;
-  const datalist = document.createElement("datalist");
-  datalist.id = "postcode-options";
-  document.body.appendChild(datalist);
-  input.setAttribute("list", "postcode-options");
+function setupFiltering() {
+  const nameInput = document.getElementById("search-name");
+  const postcodeInput = document.getElementById("search-postcode");
 
-  Array.from(postcodes)
-    .sort()
-    .forEach((pc) => {
-      const option = document.createElement("option");
-      option.value = pc;
-      datalist.appendChild(option);
-    });
+  const applyFilter = () => {
+    const nameVal = nameInput.value.toLowerCase();
+    const postcodeVal = postcodeInput.value.trim();
 
-  input.addEventListener("input", () => {
-    const value = input.value.trim();
+    const listContainer = document.getElementById("stockist-entries");
+    listContainer.innerHTML = "";
 
-    if (value === "") {
-      markers.forEach(({ marker }) => marker.setVisible(true));
-      map.fitBounds(bounds);
-      return;
-    }
+    let newBounds = new google.maps.LatLngBounds();
+    markers.forEach(({ marker, company, postcode, position, address }) => {
+      const matchesName = company.toLowerCase().includes(nameVal);
+      const matchesPostcode = postcode.includes(postcodeVal);
+      const visible = matchesName && matchesPostcode;
 
-    let zoomed = false;
-    markers.forEach(({ marker, postcode, position }) => {
-      const visible = postcode === value;
       marker.setVisible(visible);
-      if (visible && !zoomed) {
-        map.setZoom(12);
-        map.panTo(position);
-        zoomed = true;
+
+      if (visible) {
+        newBounds.extend(position);
+        const div = document.createElement("div");
+        div.className = "stockist";
+        div.innerHTML = `<strong>${company}</strong><br>${address}`;
+        div.addEventListener("mouseenter", () => {
+          marker.setIcon({
+            url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+            scaledSize: new google.maps.Size(50, 50),
+          });
+        });
+        div.addEventListener("mouseleave", () => {
+          marker.setIcon(null);
+        });
+        div.addEventListener("click", () => {
+          map.panTo(marker.getPosition());
+          map.setZoom(14);
+          google.maps.event.trigger(marker, 'click');
+        });
+        listContainer.appendChild(div);
       }
     });
+
+    if (!newBounds.isEmpty()) {
+      map.fitBounds(newBounds);
+    }
+  };
+
+  nameInput.addEventListener("input", applyFilter);
+  postcodeInput.addEventListener("input", applyFilter);
+
+  document.getElementById("clear-filters").addEventListener("click", () => {
+    nameInput.value = "";
+    postcodeInput.value = "";
+    applyFilter();
   });
+
+  applyFilter(); // Initial render
 }
 
-function addToStockistList(company, address, marker) {
-  const container = document.getElementById("stockist-list");
-  if (!container) return;
-
+function addToStockistList(stockist) {
+  const container = document.getElementById("stockist-entries");
   const div = document.createElement("div");
   div.className = "stockist";
-  div.innerHTML = `<strong>${company}</strong><br>${address}`;
-  
+  div.innerHTML = `<strong>${stockist.company}</strong><br>${stockist.address}`;
+
   div.addEventListener("mouseenter", () => {
-    marker.setIcon({
+    stockist.marker.setIcon({
       url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
       scaledSize: new google.maps.Size(50, 50),
     });
   });
 
   div.addEventListener("mouseleave", () => {
-    marker.setIcon(null);
+    stockist.marker.setIcon(null);
   });
 
   div.addEventListener("click", () => {
-    map.panTo(marker.getPosition());
+    map.panTo(stockist.marker.getPosition());
     map.setZoom(14);
-    google.maps.event.trigger(marker, 'click');
+    google.maps.event.trigger(stockist.marker, 'click');
   });
 
   container.appendChild(div);
