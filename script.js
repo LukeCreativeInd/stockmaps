@@ -12,7 +12,7 @@ function initMap() {
 
   bounds = new google.maps.LatLngBounds();
 
-  fetch("public/stockists_for_map.csv")
+  fetch("/stockists_for_map.csv")
     .then((response) => response.text())
     .then((data) => {
       const parsed = Papa.parse(data, { header: true });
