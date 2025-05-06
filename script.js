@@ -1,4 +1,3 @@
-
 let map;
 let markers = [];
 let postcodes = new Set();
@@ -16,7 +15,50 @@ function initMap() {
     .then((response) => response.text())
     .then((data) => {
       const parsed = Papa.parse(data, { header: true });
-      parsed.data.forEach((row) => {
+      
+parsed.data.forEach((row) => {
+  const { Company, Address1, City, State, Postcode, Phone, Email, "Full Address": FullAddress, Country } = row;
+  if (!FullAddress) return;
+
+  if (Postcode) postcodes.add(Postcode.trim());
+
+  const geocoder = new google.maps.Geocoder();
+  geocoder.geocode({ address: FullAddress }, (results, status) => {
+    if (status === "OK") {
+      const position = results[0].geometry.location;
+
+      const marker = new google.maps.Marker({
+        map: map,
+        position,
+        title: Company,
+      });
+
+      bounds.extend(position);
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `<strong>${Company}</strong><br>${FullAddress}<br><br>📞 ${Phone?.replaceAll('"','') || ''}`,
+      });
+
+      marker.addListener("click", () => infoWindow.open(map, marker));
+
+      const stockist = {
+        marker,
+        company: Company,
+        postcode: Postcode.trim(),
+        position,
+        address: FullAddress,
+        addressLine1: Address1,
+        city: City,
+        state: State,
+        country: Country
+      };
+      markers.push(stockist);
+
+      addToStockistList(stockist);
+      map.fitBounds(bounds);
+    }
+  });
+
         const { Company, Address1, City, State, Postcode, Phone, Email, "Full Address": FullAddress } = row;
         if (!FullAddress) return;
 
@@ -117,7 +159,10 @@ function addToStockistList(stockist) {
   const container = document.getElementById("stockist-entries");
   const div = document.createElement("div");
   div.className = "stockist";
-  div.innerHTML = `<strong>${stockist.company}</strong><br>${stockist.address}`;
+  div.innerHTML = `<strong>${toTitleCase(stockist.company)}</strong><br>
+${toTitleCase(stockist.addressLine1)}<br>
+${toTitleCase(stockist.city)}, ${toTitleCase(stockist.postcode)} ${toTitleCase(stockist.state)}<br>
+${toTitleCase(stockist.country)}`;
 
   div.addEventListener("mouseenter", () => {
     stockist.marker.setIcon({
@@ -140,3 +185,10 @@ function addToStockistList(stockist) {
 }
 
 window.initMap = initMap;
+
+
+function toTitleCase(str) {
+  return (str || "").toLowerCase().replace(/\b\w+/g, function(txt) {
+    return txt.charAt(0).toUpperCase() + txt.substr(1);
+  });
+}
