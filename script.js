@@ -3,6 +3,7 @@ let map;
 let markers = [];
 let postcodes = new Set();
 let bounds;
+let uniqueStates = new Set();
 
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
@@ -32,6 +33,7 @@ function initMap() {
         if (!FullAddress) return;
 
         if (Postcode) postcodes.add(Postcode.trim());
+        if (State) uniqueStates.add(State.trim().toUpperCase());
 
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: FullAddress }, (results, status) => {
@@ -70,6 +72,15 @@ function initMap() {
         });
       });
 
+      const stateSelect = document.getElementById("state-select");
+      stateSelect.innerHTML = '<option value="">All States</option>';
+      Array.from(uniqueStates).sort().forEach(state => {
+        const option = document.createElement("option");
+        option.value = state;
+        option.textContent = state;
+        stateSelect.appendChild(option);
+      });
+
       setupFiltering();
     });
 }
@@ -77,10 +88,12 @@ function initMap() {
 function setupFiltering() {
   const nameInput = document.getElementById("search-name");
   const postcodeInput = document.getElementById("search-postcode");
+  const stateSelect = document.getElementById("state-select");
 
   const applyFilter = () => {
     const nameVal = nameInput.value.toLowerCase();
     const postcodeVal = postcodeInput.value.trim();
+    const stateVal = stateSelect.value;
 
     const listContainer = document.getElementById("stockist-entries");
     listContainer.innerHTML = "";
@@ -89,7 +102,8 @@ function setupFiltering() {
     markers.forEach(({ marker, company, postcode, position, addressLine1, city, state, country }) => {
       const matchesName = company?.toLowerCase().includes(nameVal);
       const matchesPostcode = postcode?.includes(postcodeVal);
-      const visible = matchesName && matchesPostcode;
+      const matchesState = !stateVal || (state?.toUpperCase() === stateVal);
+      const visible = matchesName && matchesPostcode && matchesState;
 
       marker.setVisible(visible);
 
@@ -101,7 +115,7 @@ function setupFiltering() {
         div.innerHTML = `
           <strong>${toTitleCase(company)}</strong><br>
           ${toTitleCase(addressLine1)}<br>
-          ${toTitleCase(city)}, ${postcode} ${toTitleCase(state)}<br>
+          ${toTitleCase(city)}, ${postcode} ${(state || "").toUpperCase()}<br>
           ${toTitleCase(country)}
         `;
 
@@ -133,10 +147,12 @@ function setupFiltering() {
 
   nameInput.addEventListener("input", applyFilter);
   postcodeInput.addEventListener("input", applyFilter);
+  stateSelect.addEventListener("change", applyFilter);
 
   document.getElementById("clear-filters").addEventListener("click", () => {
     nameInput.value = "";
     postcodeInput.value = "";
+    stateSelect.value = "";
     applyFilter();
   });
 
@@ -150,7 +166,7 @@ function addToStockistList(stockist) {
   div.innerHTML = `
     <strong>${toTitleCase(stockist.company)}</strong><br>
     ${toTitleCase(stockist.addressLine1)}<br>
-    ${toTitleCase(stockist.city)}, ${stockist.postcode} ${toTitleCase(stockist.state)}<br>
+    ${toTitleCase(stockist.city)}, ${stockist.postcode} ${(stockist.state || "").toUpperCase()}<br>
     ${toTitleCase(stockist.country)}
   `;
 
