@@ -1,4 +1,3 @@
-
 let map;
 let markers = [];
 let postcodes = new Set();
@@ -113,7 +112,7 @@ function setupFiltering() {
         const div = document.createElement("div");
         div.className = "stockist";
         div.innerHTML = `
-          <strong>${toTitleCase(company)}</strong><br>
+          <strong>${company}</strong><br>
           ${toTitleCase(addressLine1)}<br>
           ${toTitleCase(city)}, ${postcode} ${(state || "").toUpperCase()}<br>
           ${toTitleCase(country)}
@@ -164,7 +163,7 @@ function addToStockistList(stockist) {
   const div = document.createElement("div");
   div.className = "stockist";
   div.innerHTML = `
-    <strong>${toTitleCase(stockist.company)}</strong><br>
+    <strong>${stockist.company}</strong><br>
     ${toTitleCase(stockist.addressLine1)}<br>
     ${toTitleCase(stockist.city)}, ${stockist.postcode} ${(stockist.state || "").toUpperCase()}<br>
     ${toTitleCase(stockist.country)}
