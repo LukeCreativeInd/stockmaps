@@ -26,49 +26,49 @@ function initMap() {
           Country,
           Phone,
           Email,
-          "Full Address": FullAddress
+          "Full Address": FullAddress,
+          Latitude,
+          Longitude
         } = row;
 
-        if (!FullAddress) return;
+        if (!Latitude || !Longitude) return;
 
         if (Postcode) postcodes.add(Postcode.trim());
         if (State) uniqueStates.add(State.trim().toUpperCase());
 
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: FullAddress }, (results, status) => {
-          if (status === "OK") {
-            const position = results[0].geometry.location;
+        const position = {
+          lat: parseFloat(Latitude),
+          lng: parseFloat(Longitude)
+        };
 
-            const marker = new google.maps.Marker({
-              map: map,
-              position,
-              title: Company,
-            });
-
-            bounds.extend(position);
-
-            const infoWindow = new google.maps.InfoWindow({
-              content: `<strong>${Company}</strong><br>${FullAddress}<br><br>📞 ${Phone?.replaceAll('"','') || ''}`,
-            });
-
-            marker.addListener("click", () => infoWindow.open(map, marker));
-
-            const stockist = {
-              marker,
-              company: Company,
-              postcode: Postcode.trim(),
-              position,
-              addressLine1: Address1,
-              city: City,
-              state: State,
-              country: Country,
-            };
-
-            markers.push(stockist);
-            addToStockistList(stockist);
-            map.fitBounds(bounds);
-          }
+        const marker = new google.maps.Marker({
+          map: map,
+          position,
+          title: Company,
         });
+
+        bounds.extend(position);
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<strong>${Company}</strong><br>${FullAddress}<br><br>📞 ${Phone?.replaceAll('"','') || ''}`,
+        });
+
+        marker.addListener("click", () => infoWindow.open(map, marker));
+
+        const stockist = {
+          marker,
+          company: Company,
+          postcode: Postcode.trim(),
+          position,
+          addressLine1: Address1,
+          city: City,
+          state: State,
+          country: Country,
+        };
+
+        markers.push(stockist);
+        addToStockistList(stockist);
+        map.fitBounds(bounds);
       });
 
       const stateSelect = document.getElementById("state-select");
