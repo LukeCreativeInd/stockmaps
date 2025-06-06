@@ -1,0 +1,25 @@
+name: Sync Google Sheet to CSV
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour
+  workflow_dispatch:     # Manual trigger from GitHub UI
+
+jobs:
+  update-csv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download stockist CSV from Google Sheets
+        run: |
+          curl -L "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKJJ5FdhymlI4pM82qCZg5FV8nSeSBSgs0b8QL-o3hiGlmS2jMZ0CKthRd29GWUA8vqokokgKoXE/pub?output=csv" -o stockists_for_map.csv
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stockists_for_map.csv
+          git diff --cached --quiet || git commit -m "Auto-sync stockists CSV from Google Sheets"
+          git push
